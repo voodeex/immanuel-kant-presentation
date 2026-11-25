@@ -3,7 +3,7 @@ import {
   initPresentationSync,
   usePresentationStore,
 } from './store/usePresentationStore';
-import { SceneStage } from './three/SceneStage';
+import { AdaptiveStage } from './components/AdaptiveStage';
 import { SceneEditorialOverlay } from './components/SceneEditorialOverlay';
 import { TransitionChoreography } from './components/TransitionChoreography';
 import { PresentationHUD } from './components/PresentationHUD';
@@ -294,7 +294,7 @@ export function App() {
       onTouchEnd={onTouchEnd}
       aria-label="Презентация: Иммануил Кант — Границы разума и нравственный закон"
     >
-      <SceneStage />
+      <AdaptiveStage />
       <div className="stage-vignette" aria-hidden="true" />
       <div className="stage-frame" aria-hidden="true" />
 

@@ -4,6 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Иммануил Кант — Границы разума и нравственный закон</title>
+    <script>
+      (function () {
+        function showBootError(msg) {
+          var el = document.getElementById('boot-status');
+          if (el) {
+            el.style.color = '#d9848a';
+            el.textContent = 'Ошибка: ' + msg;
+          }
+        }
+        window.addEventListener('error', function (e) {
+          showBootError((e && e.message) ? e.message : 'ошибка загрузки скрипта');
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+          var r = e && e.reason;
+          showBootError(r && r.message ? r.message : String(r || 'promise rejection'));
+        });
+      })();
+    </script>
     <style>
       html, body {
         margin: 0;
@@ -39,15 +57,6 @@
         <div id="boot-status" style="margin-top: 18px; font-family: sans-serif; font-size: 13px; color: #8c867c;">Загрузка презентации…</div>
       </div>
     </div>
-    <script>
-      window.addEventListener('error', function (e) {
-        var el = document.getElementById('boot-status');
-        if (el) {
-          el.style.color = '#d9848a';
-          el.textContent = 'Ошибка запуска: ' + (e.message || 'браузер не поддерживает модули ES');
-        }
-      });
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
