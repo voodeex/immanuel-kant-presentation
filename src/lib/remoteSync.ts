@@ -29,17 +29,25 @@ export function generateRoomCode(): string {
 
 export function getOrCreateHostRoomCode(): string {
   if (typeof window === 'undefined') return generateRoomCode();
-  const existing = window.sessionStorage.getItem(ROOM_STORAGE_KEY);
-  if (existing && /^[A-Z0-9-]{6,16}$/.test(existing)) return existing;
-  const created = generateRoomCode();
-  window.sessionStorage.setItem(ROOM_STORAGE_KEY, created);
-  return created;
+  try {
+    const existing = window.sessionStorage.getItem(ROOM_STORAGE_KEY);
+    if (existing && /^[A-Z0-9-]{6,16}$/.test(existing)) return existing;
+    const created = generateRoomCode();
+    window.sessionStorage.setItem(ROOM_STORAGE_KEY, created);
+    return created;
+  } catch {
+    return generateRoomCode();
+  }
 }
 
 export function regenerateHostRoomCode(): string {
   const created = generateRoomCode();
-  if (typeof window !== 'undefined') {
-    window.sessionStorage.setItem(ROOM_STORAGE_KEY, created);
+  try {
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem(ROOM_STORAGE_KEY, created);
+    }
+  } catch {
+    // ignore storage restrictions on kiosk / smartboard browsers
   }
   return created;
 }

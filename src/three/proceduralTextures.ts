@@ -161,6 +161,29 @@ export function getStoneTextures(): { map: THREE.CanvasTexture; bumpMap: THREE.C
   return { map, bumpMap };
 }
 
+function fillRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+  ctx.lineTo(x + radius, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
 /**
  * 18th-century Königsberg cobblestone texture
  */
@@ -204,15 +227,11 @@ export function getCobblestoneTextures(): { map: THREE.CanvasTexture; bumpMap: T
 
       const shade = 28 + Math.floor(seededNoise(c, r, 37) * 26);
       ctx.fillStyle = `rgb(${shade + 5}, ${shade + 2}, ${shade - 2})`;
-      ctx.beginPath();
-      ctx.roundRect(x, y, w, h, 5);
-      ctx.fill();
+      fillRoundedRect(ctx, x, y, w, h, 5);
 
       const bShade = 155 + Math.floor(seededNoise(c, r, 47) * 75);
       bCtx.fillStyle = `rgb(${bShade}, ${bShade}, ${bShade})`;
-      bCtx.beginPath();
-      bCtx.roundRect(x, y, w, h, 5);
-      bCtx.fill();
+      fillRoundedRect(bCtx, x, y, w, h, 5);
     }
   }
 

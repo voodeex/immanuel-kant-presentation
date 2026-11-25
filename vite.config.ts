@@ -5,7 +5,8 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   build: {
-    target: 'es2022',
+    target: ['es2015', 'chrome64', 'safari12'],
+    cssTarget: 'chrome64',
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {

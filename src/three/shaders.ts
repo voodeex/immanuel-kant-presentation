@@ -89,9 +89,11 @@ export function createNoumenonVeilMaterial(): THREE.ShaderMaterial {
         vec2 centered = vUv * 2.0 - 1.0;
         float dist = length(centered);
 
-        // Architectural metric lines on the epistemic boundary plane
-        vec2 grid = abs(fract((vUv - 0.5) * 14.0 - 0.5) - 0.5) / fwidth((vUv - 0.5) * 14.0);
-        float line = 1.0 - min(min(grid.x, grid.y), 1.0);
+        // WebGL1-safe architectural metric lines (no fwidth/OES_standard_derivatives needed)
+        vec2 gUv = abs(fract((vUv - 0.5) * 14.0) - 0.5);
+        float lineX = smoothstep(0.47, 0.5, gUv.x);
+        float lineY = smoothstep(0.47, 0.5, gUv.y);
+        float line = max(lineX, lineY);
 
         // Pointer-induced phenomenal ripple only on the accessible veil surface
         vec2 p = uPointer * 0.45;
@@ -100,13 +102,13 @@ export function createNoumenonVeilMaterial(): THREE.ShaderMaterial {
         float pointerMask = exp(-pDist * 2.4);
 
         // Circular architectural aperture frame
-        float circle = smoothstep(0.012, 0.0, abs(dist - 0.72));
+        float circle = smoothstep(0.014, 0.0, abs(dist - 0.72));
         float outerFade = smoothstep(1.0, 0.72, max(abs(centered.x), abs(centered.y)));
 
-        vec3 col = mix(uVoid, uGold, line * 0.22 + circle * 0.65);
+        vec3 col = mix(uVoid, uGold, line * 0.24 + circle * 0.65);
         col = mix(col, uIvory, ring * pointerMask * 0.55);
 
-        float alpha = (0.12 + line * 0.11 + circle * 0.42 + ring * pointerMask * 0.24) * outerFade * uReveal;
+        float alpha = (0.12 + line * 0.12 + circle * 0.42 + ring * pointerMask * 0.24) * outerFade * uReveal;
         gl_FragColor = vec4(col, alpha);
       }
     `,

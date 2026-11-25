@@ -23,8 +23,15 @@
   --font-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-  --safe-x: clamp(24px, 4.5vw, 76px);
-  --safe-y: clamp(22px, 4vh, 52px);
+  --safe-x: 48px;
+  --safe-y: 34px;
+}
+
+@supports (width: clamp(1px, 2vw, 3px)) {
+  :root {
+    --safe-x: clamp(24px, 4.5vw, 76px);
+    --safe-y: clamp(22px, 4vh, 52px);
+  }
 }
 
 *,
@@ -80,7 +87,7 @@ body,
 }
 
 .hud-ghost {
-  opacity: 0.36;
+  opacity: 0.68;
   transition: opacity 0.25s ease;
 }
 
@@ -91,13 +98,19 @@ body,
 
 .stage-canvas-layer {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 1;
 }
 
 .stage-vignette {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 2;
   pointer-events: none;
   background:
@@ -107,7 +120,10 @@ body,
 /* Subtle architectural museum frame line */
 .stage-frame {
   position: absolute;
-  inset: clamp(12px, 1.8vw, 26px);
+  top: clamp(12px, 1.8vw, 26px);
+  right: clamp(12px, 1.8vw, 26px);
+  bottom: clamp(12px, 1.8vw, 26px);
+  left: clamp(12px, 1.8vw, 26px);
   z-index: 3;
   pointer-events: none;
   border: 1px solid rgba(183, 155, 104, 0.08);
@@ -116,7 +132,10 @@ body,
 /* Scene Editorial Overlay */
 .scene-overlay {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 10;
   pointer-events: none;
   display: flex;
@@ -142,14 +161,17 @@ body,
 }
 
 .display-xl {
+  font-size: 72px;
   font-size: clamp(2.4rem, 6.2vw, 6.4rem);
 }
 
 .display-lg {
+  font-size: 56px;
   font-size: clamp(2rem, 4.6vw, 4.7rem);
 }
 
 .display-md {
+  font-size: 38px;
   font-size: clamp(1.45rem, 2.9vw, 3rem);
   line-height: 1.1;
   letter-spacing: 0.04em;
@@ -158,6 +180,7 @@ body,
 .display-quote {
   font-family: var(--font-serif);
   font-weight: 400;
+  font-size: 32px;
   font-size: clamp(1.35rem, 2.5vw, 2.55rem);
   line-height: 1.24;
   letter-spacing: 0.025em;
@@ -425,7 +448,10 @@ body,
 /* Cinematic Transition Veil (Custom per-scene choreography) */
 .transition-veil {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 25;
   pointer-events: none;
   display: flex;
@@ -541,7 +567,10 @@ body,
 /* Overview Modal */
 .overview-backdrop {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 60;
   background: rgba(11, 11, 10, 0.95);
   display: flex;
@@ -696,7 +725,10 @@ body,
 
 .remote-modal-backdrop {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 65;
   background: rgba(11, 11, 10, 0.86);
   display: flex;
@@ -739,6 +771,7 @@ body,
 /* Lightweight Mobile Remote Controller (?remote=XXXX-XXXX) */
 .remote-shell {
   width: 100vw;
+  height: 100vh;
   height: 100dvh;
   background: var(--bg-void);
   color: var(--ink-ivory);

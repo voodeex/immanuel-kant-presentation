@@ -67,6 +67,15 @@ function broadcastState(payload: Record<string, unknown>) {
 let transitionTimer: ReturnType<typeof setTimeout> | null = null;
 let lastNavTimestamp = 0;
 
+function detectReducedMotion(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  } catch {
+    return false;
+  }
+}
+
 export const usePresentationStore = create<PresentationStore>((set, get) => ({
   currentScene: 0,
   previousScene: null,
@@ -77,9 +86,7 @@ export const usePresentationStore = create<PresentationStore>((set, get) => ({
 
   overviewOpen: false,
   presenterOverlayOpen: false,
-  reducedMotion:
-    typeof window !== 'undefined' &&
-    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
+  reducedMotion: detectReducedMotion(),
   isMobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
 
   timerRunning: false,
