@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   initPresentationSync,
   usePresentationStore,
@@ -12,6 +12,15 @@ import {
   PresenterOverlay,
   PresenterStandaloneWindow,
 } from './components/PresenterView';
+import { RemotePairingModal } from './components/RemotePairingModal';
+import { MobileRemoteController } from './components/MobileRemoteController';
+import {
+  ConnectionStatus,
+  getOrCreateHostRoomCode,
+  regenerateHostRoomCode,
+  RemoteMessage,
+  RemoteSyncClient,
+} from './lib/remoteSync';
 
 function isEditableElement(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -25,11 +34,20 @@ function isEditableElement(target: EventTarget | null): boolean {
 }
 
 export function App() {
-  const isPresenterWindow =
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('presenter') === '1';
+  const searchParams =
+    typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const isPresenterWindow = searchParams?.get('presenter') === '1';
+  const remoteRoomParam = searchParams?.get('remote')?.trim().toUpperCase() || null;
 
+  const [remoteModalOpen, setRemoteModalOpen] = useState(false);
+  const [hostRoomCode, setHostRoomCode] = useState<string>(() => getOrCreateHostRoomCode());
+  const [remoteStatus, setRemoteStatus] = useState<ConnectionStatus>('idle');
+  const [remotePeerConnected, setRemotePeerConnected] = useState(false);
+  const [remoteEnabled, setRemoteEnabled] = useState(false);
+
+  const remoteClientRef = useRef<RemoteSyncClient | null>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const currentScene = usePresentationStore((s) => s.currentScene);
 
   const toggleFullscreen = useCallback(() => {
     if (typeof document === 'undefined') return;
@@ -42,6 +60,7 @@ export function App() {
 
   const openPresenterWindow = useCallback(() => {
     const url = new URL(window.location.href);
+    url.search = '';
     url.searchParams.set('presenter', '1');
     const win = window.open(
       url.toString(),
@@ -53,8 +72,69 @@ export function App() {
     }
   }, []);
 
-  // Sync + responsive viewport & reduced-motion listeners
+  const openRemoteModal = useCallback(() => {
+    setRemoteEnabled(true);
+    setRemoteModalOpen((prev) => !prev);
+  }, []);
+
+  const handleRegenerateCode = useCallback(() => {
+    setRemotePeerConnected(false);
+    setHostRoomCode(regenerateHostRoomCode());
+  }, []);
+
+  // Host-side WebSocket remote listener (starts when user opens Remote Pairing modal)
   useEffect(() => {
+    if (remoteRoomParam || isPresenterWindow || !remoteEnabled) return;
+
+    const client = new RemoteSyncClient(
+      hostRoomCode,
+      (msg: RemoteMessage) => {
+        const store = usePresentationStore.getState();
+
+        if (msg.type === 'HELLO') {
+          setRemotePeerConnected(true);
+          client.send({ type: 'STATE', sceneIndex: store.currentScene });
+          // Automatically dismiss QR overlay shortly after phone links so projector stays clean
+          setTimeout(() => {
+            setRemoteModalOpen(false);
+          }, 850);
+        } else if (msg.type === 'GOTO') {
+          setRemotePeerConnected(true);
+          store.goToScene(msg.sceneIndex, true);
+        } else if (msg.type === 'NEXT') {
+          setRemotePeerConnected(true);
+          store.nextScene();
+        } else if (msg.type === 'PREV') {
+          setRemotePeerConnected(true);
+          store.prevScene();
+        } else if (msg.type === 'REPLAY') {
+          setRemotePeerConnected(true);
+          store.replayCurrentScene();
+        }
+      },
+      (status) => {
+        setRemoteStatus(status);
+      }
+    );
+
+    remoteClientRef.current = client;
+    client.connect();
+
+    return () => {
+      client.disconnect();
+      remoteClientRef.current = null;
+    };
+  }, [hostRoomCode, remoteEnabled, remoteRoomParam, isPresenterWindow]);
+
+  // Keep connected phone synced if presenter also presses Space/Arrows on the laptop
+  useEffect(() => {
+    if (!remotePeerConnected || !remoteClientRef.current) return;
+    remoteClientRef.current.send({ type: 'STATE', sceneIndex: currentScene });
+  }, [currentScene, remotePeerConnected]);
+
+  // Local BroadcastChannel sync + responsive viewport & reduced-motion listeners
+  useEffect(() => {
+    if (remoteRoomParam) return;
     const cleanupSync = initPresentationSync();
 
     const onResize = () => {
@@ -73,10 +153,12 @@ export function App() {
       window.removeEventListener('resize', onResize);
       mq?.removeEventListener?.('change', onMotionChange);
     };
-  }, []);
+  }, [remoteRoomParam]);
 
   // Simple, rock-solid Keynote keyboard controller
   useEffect(() => {
+    if (remoteRoomParam) return;
+
     const onKeyDown = (e: KeyboardEvent) => {
       if (isEditableElement(e.target)) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -111,6 +193,8 @@ export function App() {
           e.preventDefault();
           if (document.fullscreenElement) {
             document.exitFullscreen?.().catch(() => {});
+          } else if (remoteModalOpen) {
+            setRemoteModalOpen(false);
           } else if (store.overviewOpen) {
             store.setOverviewOpen(false);
           } else if (store.presenterOverlayOpen) {
@@ -145,6 +229,13 @@ export function App() {
           e.preventDefault();
           store.togglePresenterOverlay();
           break;
+        case 'm':
+        case 'M':
+        case 'ь':
+        case 'Ь':
+          e.preventDefault();
+          openRemoteModal();
+          break;
         default:
           break;
       }
@@ -152,18 +243,18 @@ export function App() {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [toggleFullscreen]);
+  }, [toggleFullscreen, openRemoteModal, remoteModalOpen, remoteRoomParam]);
 
   // One click anywhere on the presentation background -> Next slide
   const onStageClick = (e: React.MouseEvent<HTMLElement>) => {
     const target = e.target as HTMLElement | null;
     if (target?.closest('[data-hud-control="true"], button, a')) return;
     const store = usePresentationStore.getState();
-    if (store.overviewOpen) return;
+    if (store.overviewOpen || remoteModalOpen) return;
     store.nextScene();
   };
 
-  // Touch swipe navigation on mobile & tablets
+  // Touch swipe navigation on tablets & mobile
   const onTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length !== 1) return;
     touchStartRef.current = {
@@ -180,11 +271,16 @@ export function App() {
 
     if (Math.abs(dx) > 54 && Math.abs(dx) > Math.abs(dy) * 1.4) {
       const store = usePresentationStore.getState();
-      if (store.overviewOpen) return;
+      if (store.overviewOpen || remoteModalOpen) return;
       if (dx < 0) store.nextScene();
       else store.prevScene();
     }
   };
+
+  // Dedicated lightweight Mobile Remote UI (no WebGL loaded!)
+  if (remoteRoomParam) {
+    return <MobileRemoteController roomCode={remoteRoomParam} />;
+  }
 
   if (isPresenterWindow) {
     return <PresenterStandaloneWindow />;
@@ -208,6 +304,17 @@ export function App() {
       <PresentationHUD
         onToggleFullscreen={toggleFullscreen}
         onOpenPresenterWindow={openPresenterWindow}
+        onOpenRemoteModal={openRemoteModal}
+        remoteConnected={remotePeerConnected}
+      />
+
+      <RemotePairingModal
+        open={remoteModalOpen}
+        roomCode={hostRoomCode}
+        connectionStatus={remoteStatus}
+        peerConnected={remotePeerConnected}
+        onClose={() => setRemoteModalOpen(false)}
+        onRegenerateCode={handleRegenerateCode}
       />
 
       <PresenterOverlay onOpenStandaloneWindow={openPresenterWindow} />

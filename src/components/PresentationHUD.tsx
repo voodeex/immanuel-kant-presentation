@@ -6,6 +6,7 @@ import {
   FileText,
   Maximize2,
   Minimize2,
+  Smartphone,
 } from 'lucide-react';
 import { SLIDES } from '../data/scenes';
 import { usePresentationStore } from '../store/usePresentationStore';
@@ -13,6 +14,8 @@ import { usePresentationStore } from '../store/usePresentationStore';
 interface PresentationHUDProps {
   onToggleFullscreen: () => void;
   onOpenPresenterWindow: () => void;
+  onOpenRemoteModal: () => void;
+  remoteConnected: boolean;
 }
 
 /**
@@ -23,6 +26,8 @@ interface PresentationHUDProps {
 export function PresentationHUD({
   onToggleFullscreen,
   onOpenPresenterWindow,
+  onOpenRemoteModal,
+  remoteConnected,
 }: PresentationHUDProps) {
   const currentScene = usePresentationStore((s) => s.currentScene);
   const presenterOverlayOpen = usePresentationStore((s) => s.presenterOverlayOpen);
@@ -63,6 +68,22 @@ export function PresentationHUD({
 
         {/* Discreet Ghost Controls (low opacity at rest, surface on hover) */}
         <div className="hud-tools hud-ghost">
+          <button
+            type="button"
+            className={`hud-icon-btn ${remoteConnected ? 'hud-icon-btn--active' : ''}`}
+            onClick={onOpenRemoteModal}
+            title={
+              remoteConnected
+                ? 'Телефон подключён · Пульт (M)'
+                : 'Подключить пульт с телефона (M)'
+            }
+            aria-label="Подключить пульт с телефона"
+            style={{ position: 'relative' }}
+          >
+            <Smartphone size={14} />
+            {remoteConnected && <span className="hud-remote-dot" aria-hidden="true" />}
+          </button>
+
           <button
             type="button"
             className={`hud-icon-btn ${presenterOverlayOpen ? 'hud-icon-btn--active' : ''}`}
